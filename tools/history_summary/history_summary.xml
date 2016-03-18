@@ -1,4 +1,4 @@
-<tool id="HistorySummary" name="HistorySummary" version="0.1">
+<tool id="history_summary" name="HistorySummary" version="0.1">
     <description>generates a html for summarizing the current history contents along with renaming the output files</description>
     <xml name="stdio">
         <stdio>
@@ -157,18 +157,21 @@
         #set $order = []
         #set $conf = {}
         #set $subst = {}
-        echo "<p>Parameters for rename<br>" >> $output;
-        #for $line in $configuration.split('\n')
-            #set $arr = $line.split()
-            echo "$arr<br>" >> $output;
-            #set $conf[$arr[0]] = $arr[1].replace(".", "_0X")
-            #set $subst[$arr[0]] = {}
-            $order.append($arr[0])
-            #for $x in $arr[2:]
-                #set $y = $x.split("=")
-                #set $subst[$arr[0]][$y[0]] = $y[1] if len($y) > 1 else ""
+        #set $lines = $configuration.rstrip().split('\n')
+        #if len($lines) > 1 or len($lines[0].rstrip()) > 0
+            echo "<p>Parameters for rename<br>" >> $output;
+            #for $line in $lines
+                #set $arr = $line.split()
+                echo "$arr<br>" >> $output;
+                #set $conf[$arr[0]] = $arr[1].replace(".", "_0X")
+                #set $subst[$arr[0]] = {}
+                $order.append($arr[0])
+                #for $x in $arr[2:]
+                    #set $y = $x.split("=")
+                    #set $subst[$arr[0]][$y[0]] = $y[1] if len($y) > 1 else ""
+                #end for
             #end for
-        #end for
+        #end if
 
         #set $jobs = {}
         #for $hda in $history.datasets
@@ -186,23 +189,23 @@
             #if $re.match(r'^[0-9\\.]+$', $arr[-1], $re.M)
                 #set $tar_tid = $arr[-2]
             #end if
+            #if not $tools.has_key($tar_tid)
+                #set $tools[$tar_tid] = []
+            #end if
+            $tools[$tar_tid].append($job_id)
             #if $conf.has_key($tar_tid)
-                #if not $tools.has_key($tar_tid)
-                    #set $tools[$tar_tid] = []
-                #end if
-                $tools[$tar_tid].append($job_id)
                 $specified_jobs.add($job_id)
             #end if
         #end for
 
         #set $rules = {}
-        #for $tar_tid in $order
+        #for $tar_tid in $order if len($order) > 0 else $tools.keys()
             #if $tools.has_key($tar_tid)
                 ##echo ">$tar_tid $str($subst[$tar_tid])<br>" >> $output;
                 #for $tar_jid in $tools[$tar_tid]
                     #for $jda in $jobs[$tar_jid].input_datasets
                         #set $tar_new = ""
-                        #if $jda.dataset and str($jda.name) == $conf[$tar_tid]
+                        #if $jda.dataset and str($jda.name) == $conf.get($tar_tid)
                             #if $rules.has_key(str($jda.dataset.id))
                                 #set $tar_new = $rules[str($jda.dataset.id)]
                             #else
@@ -233,7 +236,7 @@
         echo "<p><table border=1 cellpadding=2 bgcolor=#DFE5F9 style='mytable'>" >> $output;
         echo "<tr><th align=center>Tool</th><th align=center>EC</th><th align=center>Input</th><th align=center>Output</th>" >> $output;
         #for $job_id, $job in $jobs.iteritems()
-            #if $job_id != $output.creating_job.id and ($use_specified == False or $job_id in $specified_jobs)
+            #if $job_id != $output.creating_job.id and (not $use_specified or $job_id in $specified_jobs)
                 $print_Job($job, $rules)
             #end if
         #end for
