@@ -1,0 +1,7 @@
+categories: [Web Services]
+description: summarize current history contents and rename output files
+long_description: HistorySummary generates a html for summarizing the current history
+  contents along with renaming the output files
+name: history_summary
+owner: epigenome
+remote_repository_url: https://github.com/epigenome/galaxy-epigenome/tree/history/tools/history

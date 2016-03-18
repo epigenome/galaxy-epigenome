@@ -1,0 +1,119 @@
+<tool id="HistoryContent" name="HistoryContent" version="0.1">
+    <description>lists the current history contents</description>
+    <xml name="stdio">
+        <stdio>
+            <exit_code range="1:" />
+        </stdio>
+    </xml>
+    <command>
+        #set global $gap = "    "
+
+        #def print_Dataset($ds, $ident)
+            echo "${ident}DS: $ds.state $ds.deleted $ds.purged $ds.get_file_name()" >> $output_dataset;
+        #end def
+
+        #def print_DatasetCollection($dsc, $ident)
+            echo "${ident}DSC: $dsc.id $dsc.collection_type $dsc.populated_state" >> $output_dataset;
+            #for $el in $dsc.elements
+                echo "${ident}E: $el.element_index $el.element_identifier $el.id" >> $output_dataset;
+                #*
+                #if $el.is_collection
+                    $print_DatasetCollection($el.element_object, $ident+$gap)
+                #end if
+                *#
+                #if $el.hda
+                    $print_HistoryDatasetAssociation($el.hda, $ident+$gap)
+                #elif $el.ldda
+                    $print_LibraryDatasetAssociation($el.ldda)
+                #elif $el.child_collection
+                    $print_DatasetCollection($el.child_collection, $ident+$gap)
+                #end if
+            #end for
+        #end def
+
+        #def print_JobToDataAssociation($jda, $ident)
+            #if $jda.dataset
+                $print_Dataset($jda.dataset, $ident+"JDA: "+$jda.name+" ")
+            #else
+                echo "${ident}JDA: $jda.name" >> $output_dataset;
+            #end if
+        #end def
+
+        #def print_JobParameter($parameters, $ident)
+            #for $par in $parameters
+                echo "${ident}P:$par.name '$par.value'" >> $output_dataset;
+            #end for
+        #end def
+
+        #def print_Job($job, $ident)
+            echo "${ident}JOB: $job.id $job.state $job.exit_code $job.tool_id '$job.info'" >> $output_dataset;
+            ##$print_JobParameter($job.parameters, $ident+$gap)
+            #for $jda in $job.input_datasets
+                $print_JobToDataAssociation($jda, $ident+$gap+"ID: ")
+            #end for
+            #for $jda in $job.output_datasets
+                $print_JobToDataAssociation($jda, $ident+$gap+"OD: ")
+            #end for
+            #*
+            #for $jda in $job.input_dataset_collections
+                $print_JobToDataAssociation($jda, $ident+$gap+"IC: ")
+            #end for
+            #for $jda in $job.output_dataset_collections
+                $print_JobToDataAssociation($jda, $ident+$gap+"OC: ")
+            #end for
+            *#
+            #for $jda in $job.input_library_datasets
+                $print_JobToDataAssociation($jda, $ident+$gap+"IL: ")
+            #end for
+            #for $jda in $job.output_library_datasets
+                $print_JobToDataAssociation($jda, $ident+$gap+"OL: ")
+            #end for
+        #end def
+
+        #def print_LibraryDatasetAssociation($hda, $ident="")
+        #end def 
+
+        #def print_HistoryDatasetAssociation($hda, $ident="")
+            #set $ds = $hda.dataset
+            #if ($use_deleted or $hda.deleted == False) and ($use_hidden or $hda.visible == True)
+                echo "${ident}HDA: $hda.hid '$hda.name' '$hda.blurb' $hda.extension $hda.visible $hda.deleted '$hda.tool_version'" >> $output_dataset;
+                $print_Dataset($ds, $ident+$gap)
+                #set $original_hda = $hda
+                #for $assoc in $original_hda.creating_job_associations
+                    $print_Job($assoc.job, $ident+$gap)
+                #end for
+            #end if
+        #end def
+
+        #def print_HistoryDatasetCollectionAssociation($hdca, $ident="")
+            #if ($use_deleted or $hdca.deleted == False) and ($use_hidden or $hdca.visible == True)
+                echo "${ident}HDCA: $hdca.hid '$hdca.name' $hdca.visible $hdca.deleted" >> $output_dataset;
+                #set $dsc = $hdca.collection
+                $print_DatasetCollection($dsc, $ident+$gap)
+            #end if
+        #end def
+
+        #set $api_key = $__user__.api_keys[0].key
+        echo $api_key > $output_dataset;
+        #set $history = $output_dataset.creating_job.history
+        #set $history_id = $__app__.security.encode_id($history.id)
+        #set $history_name=$history.name
+        echo $history_id >> $output_dataset;
+        echo "$history_name" >> $output_dataset;
+
+        #for $hda in $history.datasets
+            $print_HistoryDatasetAssociation($hda)
+        #end for
+
+        #for $hdca in $history.dataset_collections
+            $print_HistoryDatasetCollectionAssociation($hdca)
+        #end for
+        </command>
+    <inputs>
+        <param name="use_hidden" label='Include hidden contents' type="boolean" truevalue="True" falsevalue="" checked="True" />
+        <param name="use_deleted" label='Include deleted contents' type="boolean" truevalue="True" falsevalue="" />
+    </inputs>
+    <outputs>
+        <data format="txt" name="output_dataset" />
+    </outputs>
+</tool>
