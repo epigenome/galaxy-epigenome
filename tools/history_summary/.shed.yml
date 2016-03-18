@@ -4,4 +4,5 @@ long_description: HistorySummary generates a html for summarizing the current hi
   contents along with renaming the output files
 name: history_summary
 owner: epigenome
+homepage_url: https://github.com/epigenome/galaxy-epigenome/
 remote_repository_url: https://github.com/epigenome/galaxy-epigenome/tree/history/tools/history
